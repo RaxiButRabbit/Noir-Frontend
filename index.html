@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOIR STORE | Premium FiveM Resources</title>
+    <link rel="stylesheet" href="maincss.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link rel="icon" type="image/png" href="assets/noirlogo2.png">
+</head>
+<body>
+    <div class="cursor"></div>
+    <div id="cursor-ring"></div>
+    <div class="starfield">
+        <div class="stars stars-1"></div>
+        <div class="stars stars-2"></div>
+        <div class="stars stars-3"></div>
+    </div>
+    <div class="dots-overlay"></div>
+    <canvas id="stars-canvas"></canvas>
+
+    <!-- AUTH MODAL -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal auth-modal">
+            <div class="modal-close" onclick="closeModal('authModal')"><i data-feather="x"></i></div>
+
+            <div id="loginView">
+                <h2>WELCOME BACK</h2>
+                <p class="modal-sub">Sign in to your Noir account</p>
+                <div class="social-login">
+                    <div class="social-btn" onclick="socialLogin('github')" title="GitHub"><i data-feather="github"></i></div>
+                    <div class="social-btn" onclick="socialLogin('google')" title="Google"><i data-feather="chrome"></i></div>
+                    <div class="social-btn" onclick="socialLogin('discord')" title="Discord"><i data-feather="message-square"></i></div>
+                </div>
+                <div class="auth-divider"><span>or continue with email</span></div>
+                <form class="login-form" onsubmit="handleLogin(event)">
+                    <input type="email" id="loginEmail" placeholder="Email Address" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <div class="form-error" id="loginError"></div>
+                    <button type="submit">SIGN IN</button>
+                </form>
+                <p class="auth-switch">No account? <span onclick="showView('registerView')">Create one →</span></p>
+            </div>
+
+            <div id="registerView" style="display:none">
+                <h2>JOIN NOIR</h2>
+                <p class="modal-sub">Create your exclusive account</p>
+                <form class="login-form" onsubmit="handleRegister(event)">
+                    <div style="display:flex;gap:.8rem">
+                        <input type="text" id="regFirst" placeholder="First Name" required style="width:50%">
+                        <input type="text" id="regLast" placeholder="Last Name" required style="width:50%">
+                    </div>
+                    <input type="email" id="regEmail" placeholder="Email Address" required>
+                    <input type="password" id="regPassword" placeholder="Password (min 6 chars)" minlength="6" required>
+                    <div class="form-error" id="registerError"></div>
+                    <button type="submit">CREATE ACCOUNT</button>
+                </form>
+                <p class="auth-switch">Already have one? <span onclick="showView('loginView')">Sign in →</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal profile-modal">
+            <div class="modal-close" onclick="closeModal('profileModal')"><i data-feather="x"></i></div>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">N</div>
+                <div>
+                    <div class="profile-name" id="profileName">Noir User</div>
+                    <div class="profile-email" id="profileEmail"></div>
+                </div>
+            </div>
+            <hr class="modal-hr">
+            <form class="login-form" onsubmit="updateProfile(event)">
+                <div style="display:flex;gap:.8rem">
+                    <input type="text" id="editFirst" placeholder="First Name" style="width:50%">
+                    <input type="text" id="editLast" placeholder="Last Name" style="width:50%">
+                </div>
+                <div class="form-error" id="profileError"></div>
+                <button type="submit">UPDATE PROFILE</button>
+            </form>
+            <hr class="modal-hr">
+            <button class="logout-btn" onclick="handleLogout()">
+                <i data-feather="log-out"></i> Sign Out
+            </button>
+        </div>
+    </div>
+
+    <!-- WALLET MODAL -->
+    <div class="modal-overlay" id="walletModal">
+        <div class="modal wallet-modal">
+            <div class="modal-close" onclick="closeModal('walletModal')"><i data-feather="x"></i></div>
+            <h2>MY WALLET</h2>
+            <div class="wallet-card">
+                <div class="wallet-label">Available Balance</div>
+                <div class="wallet-amount">$<span id="walletBalance">0.00</span></div>
+                <div class="wallet-user" id="walletUser">NOIR MEMBER</div>
+            </div>
+            <div class="add-funds-section">
+                <p class="wallet-sub">Add Funds</p>
+                <div class="fund-options">
+                    <button class="fund-btn" onclick="addFunds(10)">+$10</button>
+                    <button class="fund-btn" onclick="addFunds(25)">+$25</button>
+                    <button class="fund-btn" onclick="addFunds(50)">+$50</button>
+                    <button class="fund-btn" onclick="addFunds(100)">+$100</button>
+                </div>
+                <div class="fund-success" id="fundSuccess"></div>
+            </div>
+            <hr class="modal-hr">
+            <p class="wallet-sub">Recent Transactions</p>
+            <div class="transaction-list" id="transactionList">
+                <div class="no-transactions">No transactions yet.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CART DRAWER -->
+    <div class="modal-overlay cart-drawer" id="cartDrawer">
+        <div class="cart-panel">
+            <div class="cart-header">
+                <h3>SHOPPING BAG</h3>
+                <div onclick="closeModal('cartDrawer')" style="cursor:pointer"><i data-feather="x"></i></div>
+            </div>
+            <div class="cart-items" id="cartItems">
+                <div class="cart-empty">Your bag is empty.</div>
+            </div>
+            <div class="cart-footer">
+                <div style="display:flex;justify-content:space-between;margin-bottom:1rem">
+                    <span>Total</span>
+                    <span>$<span id="cartTotal">0.00</span></span>
+                </div>
+                <button class="checkout-btn" onclick="handleCheckout()">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE -->
+    <div class="page-wrapper">
+        <header>
+            <div class="logo">
+                <img src="assets/noirlogo2.png" alt="NOIR LOGO">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#home" data-i18n="nav_home">Home</a></li>
+                    <li><a href="#scripts" data-i18n="nav_scripts">Scripts</a></li>
+                    <li><a href="#clothes" data-i18n="nav_clothes">Clothes</a></li>
+                    <li><a href="#private" data-i18n="nav_private">Private</a></li>
+                </ul>
+            </nav>
+            <div class="header-right">
+                <div class="header-actions" style="display: flex; align-items: center; justify-content: flex-end;">
+                    <!-- WALLET SECTION (Moved to start to prevent shifting) -->
+                <div style="position: relative;">
+                    <div class="action-btn" id="walletBtn" title="Wallet"><i data-feather="credit-card"></i></div>
+                    <div class="dropdown-menu" id="walletDropdown">
+                        <div class="wallet-card" style="margin: 0 0 1rem 0; padding: 1.5rem;">
+                            <div class="wallet-label">Available Balance</div>
+                            <div class="wallet-amount" style="font-size: 2rem;">$<span id="popWalletBalance">0.00</span></div>
+                            <div class="wallet-user" id="popWalletUser" style="font-size: 0.6rem;">NOIR MEMBER</div>
+                        </div>
+                        <div class="settings-group">
+                            <p class="settings-label">Quick Add</p>
+                            <div class="fund-options">
+                                <button class="fund-btn" style="padding: 0.5rem;" onclick="addFunds(10)">+$10</button>
+                                <button class="fund-btn" style="padding: 0.5rem;" onclick="addFunds(50)">+$50</button>
+                            </div>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="openModal('walletModal')">
+                            <i data-feather="external-link"></i> Full Wallet View
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-bar-container" id="searchBarContainer">
+                    <input type="text" placeholder="Search resources..." id="searchInput" oninput="filterCards(this.value)">
+                </div>
+                <div class="action-btn" id="searchBtn"><i data-feather="search"></i></div>
+
+                <div class="action-btn cart-action" id="cartBtn">
+                    <i data-feather="shopping-bag"></i>
+                    <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+                </div>
+            </div>
+
+            <!-- DEDICATED PROFILE SLOT (Stabilized) -->
+            <div class="user-profile-container">
+                <div class="action-btn" id="userBtn"><i data-feather="user"></i></div>
+                <div class="dropdown-menu" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <div class="profile-avatar" id="popAvatar" style="width: 40px; height: 40px; font-size: 0.9rem;">N</div>
+                        <div>
+                            <div class="profile-name" id="popName" style="font-size: 0.9rem;">Noir User</div>
+                            <div class="profile-email" id="popEmail" style="font-size: 0.7rem; color: var(--text-dim);">Sign in to access</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dropdown-divider"></div>
+                    
+                    <!-- SETTINGS -->
+                    <div class="settings-group">
+                        <p class="settings-label">Theme</p>
+                        <div class="theme-options">
+                            <button class="theme-btn active" onclick="setTheme('dark')">Dark</button>
+                            <button class="theme-btn" onclick="setTheme('light')">Light</button>
+                            <button class="theme-btn" onclick="setTheme('blue')">Blue</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <p class="settings-label">Language</p>
+                        <div class="lang-options" style="flex-wrap: wrap;">
+                            <button class="lang-btn active" onclick="setLang('en')">EN</button>
+                            <button class="lang-btn" onclick="setLang('tr')">TR</button>
+                            <button class="lang-btn" onclick="setLang('es')">ES</button>
+                            <button class="lang-btn" onclick="setLang('pt')">PT</button>
+                            <button class="lang-btn" onclick="setLang('fr')">FR</button>
+                            <button class="lang-btn" onclick="setLang('de')">DE</button>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+
+                    <div class="dropdown-item" onclick="openModal('profileModal')" id="editProfileItem" style="display:none">
+                        <i data-feather="settings"></i> Edit Profile
+                    </div>
+                    <div class="dropdown-item" onclick="handleLogout()" id="logoutItem" style="display:none">
+                        <i data-feather="log-out"></i> Sign Out
+                    </div>
+                    <div class="dropdown-item" onclick="openModal('authModal')" id="loginItem">
+                        <i data-feather="log-in"></i> Sign In / Register
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+        <section class="hero" id="home">
+            <div class="animate-in">
+                <h1 class="hero-title tilt-target">
+                    <span class="title-line" data-i18n="hero_line_1">THE <span class="accent-text">NOIR</span></span>
+                    <span class="experience-line" data-i18n="hero_line_2">EXPERIENCE</span>
+                </h1>
+                <p class="hero-sub-desc" data-i18n="hero_desc_new">Redefining the standards of premium FiveM scripts with elite craftsmanship and unrivaled performance.</p>
+            </div>
+            <div class="scroll-indicator">
+                <span data-i18n="scroll_down">Scroll Down</span>
+                <i data-feather="chevron-down"></i>
+            </div>
+        </section>
+
+        <div class="marquee-wrap">
+            <div class="marquee-content">
+                <span>PREMIUM SCRIPTS • EXCLUSIVE CLOTHING • PRIVATE NOIR • ELITE COMMUNITY • BEST OPTIMIZATION • 24/7 SUPPORT • CUSTOM MODELS • HIGH FPS • NOIR EXPERIENCE • LUXURY DESIGN • </span>
+                <span>PREMIUM SCRIPTS • EXCLUSIVE CLOTHING • PRIVATE NOIR • ELITE COMMUNITY • BEST OPTIMIZATION • 24/7 SUPPORT • CUSTOM MODELS • HIGH FPS • NOIR EXPERIENCE • LUXURY DESIGN • </span>
+            </div>
+        </div>
+
+        <div class="store-container">
+            <!-- REVIEWS SECTION -->
+            <div class="section-header" id="reviews">
+                <h2 class="section-title" data-i18n="reviews_title">COMMUNITY VOICES</h2>
+                <p class="section-subtitle" data-i18n="reviews_subtitle">Grab and throw to explore what they say.</p>
+            </div>
+            
+            <div class="reviews-slider-container">
+                <div class="reviews-track" id="reviewsTrack">
+                    <!-- Set 1 -->
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev1_text">"Insane optimization!"</p><span class="author-name" data-i18n="rev1_name">Alex Rivera</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev2_text">"Crisp textures, 10/10."</p><span class="author-name" data-i18n="rev2_name">Jordan S.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev3_text">"Professional support."</p><span class="author-name" data-i18n="rev3_name">Marcus V.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev4_text">"Best scripts ever."</p><span class="author-name" data-i18n="rev4_name">Derya K.</span></div>
+                    <!-- Set 2 (Duplicate) -->
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev1_text">"Insane optimization!"</p><span class="author-name" data-i18n="rev1_name">Alex Rivera</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev2_text">"Crisp textures, 10/10."</p><span class="author-name" data-i18n="rev2_name">Jordan S.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev3_text">"Professional support."</p><span class="author-name" data-i18n="rev3_name">Marcus V.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev4_text">"Best scripts ever."</p><span class="author-name" data-i18n="rev4_name">Derya K.</span></div>
+                    <!-- Set 3 (Duplicate for extra smoothness) -->
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev1_text">"Insane optimization!"</p><span class="author-name" data-i18n="rev1_name">Alex Rivera</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev2_text">"Crisp textures, 10/10."</p><span class="author-name" data-i18n="rev2_name">Jordan S.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev3_text">"Professional support."</p><span class="author-name" data-i18n="rev3_name">Marcus V.</span></div>
+                    <div class="review-card mini"><div class="review-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div><p data-i18n="rev4_text">"Best scripts ever."</p><span class="author-name" data-i18n="rev4_name">Derya K.</span></div>
+                </div>
+            </div>
+
+            <div class="section-header" id="scripts">
+                <h2 class="section-title">FIVEM SCRIPTS</h2>
+                <p class="section-subtitle">Highly optimized, feature-rich scripts for your server.</p>
+            </div>
+            <div class="grid">
+                <div class="card" data-name="Advanced Banking" data-price="45">
+                    <div class="card-category" data-i18n="cat_system">System</div>
+                    <div class="card-image"><img src="assets/215.png" alt="Advanced Banking"></div>
+                    <h3 data-i18n="card1_title">Advanced Banking</h3>
+                    <p data-i18n="card1_desc">A complete banking overhaul with credit cards, loans, and shared accounts.</p>
+                    <div class="card-footer">
+                        <div class="price">$45.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+                <div class="card" data-name="Noir Housing" data-price="60">
+                    <div class="card-category" data-i18n="cat_economy">Economy</div>
+                    <div class="card-image"><img src="assets/221.png" alt="Noir Housing"></div>
+                    <h3 data-i18n="card2_title">Noir Housing</h3>
+                    <p data-i18n="card2_desc">Fully dynamic housing system with furniture placement and real-estate agent tools.</p>
+                    <div class="card-footer">
+                        <div class="price">$60.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+                <div class="card" data-name="Drug Empires" data-price="35">
+                    <div class="card-category" data-i18n="cat_illegal">Illegal</div>
+                    <div class="card-image"><img src="assets/223.png" alt="Drug Empires"></div>
+                    <h3 data-i18n="card3_title">Drug Empires</h3>
+                    <p data-i18n="card3_desc">Expansion pack for criminal organizations featuring labs and territories.</p>
+                    <div class="card-footer">
+                        <div class="price">$35.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header" id="clothes">
+                <h2 class="section-title">FIVEM CLOTHES</h2>
+                <p class="section-subtitle">Custom modeled, high-quality textures for your characters.</p>
+            </div>
+            <div class="grid">
+                <div class="card" data-name="Noir Summer Pack" data-price="25">
+                    <div class="card-category" data-i18n="cat_streetwear">Streetwear</div>
+                    <div class="card-image"><img src="assets/215.png" alt="Noir Summer Pack"></div>
+                    <h3 data-i18n="card4_title">Noir Summer Pack</h3>
+                    <p data-i18n="card4_desc">15+ custom streetwear items for both male and female characters.</p>
+                    <div class="card-footer">
+                        <div class="price">$25.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+                <div class="card" data-name="Suit & Tie Collection" data-price="30">
+                    <div class="card-category" data-i18n="cat_luxury">Luxury</div>
+                    <div class="card-image"><img src="assets/221.png" alt="Suit & Tie"></div>
+                    <h3 data-i18n="card5_title">Suit & Tie Collection</h3>
+                    <p data-i18n="card5_desc">Elegant formal wear collection with 4k textures and custom models.</p>
+                    <div class="card-footer">
+                        <div class="price">$30.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+                <div class="card" data-name="LSPD Uniform Pack" data-price="40">
+                    <div class="card-category" data-i18n="cat_police">Police</div>
+                    <div class="card-image"><img src="assets/223.png" alt="LSPD Uniform Pack"></div>
+                    <h3 data-i18n="card6_title">LSPD Uniform Pack</h3>
+                    <p data-i18n="card6_desc">Complete replacement for LSPD uniforms with tactical gear and badges.</p>
+                    <div class="card-footer">
+                        <div class="price">$40.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="shopping-cart"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header" id="private">
+                <h2 class="section-title">PRIVATE NOIR</h2>
+                <p class="section-subtitle">Exclusive limited-edition resources for partners.</p>
+            </div>
+            <div class="grid">
+                <div class="card" style="border-color:var(--accent-color)" data-name="Noir Platinum Access" data-price="299">
+                    <div class="card-category" data-i18n="cat_exclusive">Exclusive</div>
+                    <div class="card-image"><img src="assets/221.png" alt="Noir Platinum Access"></div>
+                    <h3 data-i18n="card7_title">Noir Platinum Access</h3>
+                    <p data-i18n="card7_desc">Lifetime access to all future releases and private beta testing channel.</p>
+                    <div class="card-footer">
+                        <div class="price">$299.00<span>USD</span></div>
+                        <button class="btn-buy" onclick="addToCart(this)"><i data-feather="lock"></i></button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="assets/noirword.png" alt="NOIR" class="footer-logo">
+                    <p data-i18n="footer_desc">Elevating FiveM experiences with premium resources and elite designs.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-discord"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-x-twitter"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>Shop</h4>
+                        <ul>
+                            <li><a href="#scripts">Scripts</a></li>
+                            <li><a href="#clothes">Clothing</a></li>
+                            <li><a href="#private">Private</a></li>
+                        </ul>
+                    </div>
+                    <div class="link-group">
+                        <h4>Support</h4>
+                        <ul>
+                            <li><a href="https://discord.gg/rFwuNPnZNz" target="_blank">Discord Support</a></li>
+                            <li><a href="#">Documentation</a></li>
+                            <li><a href="#">Terms of Service</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 NOIR STORE. All rights reserved. Not affiliated with Rockstar Games or Take-Two Interactive.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- KITTEN MASCOT (ORIGINAL) -->
+    <div class="marker red d-none"></div>
+    <div class="marker blue d-none"></div>
+    <div class="kitten-wrapper">
+        <!-- CHAT BUBBLE (MOVED OUTSIDE MASCOT WRAPPER TO FIX STYLES) -->
+        <div class="kitten-chat-container">
+            <div class="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="kitten-bubble">
+                <div class="bubble-text"></div>
+            </div>
+        </div>
+
+        <div class="platypus-wrapper absolute">
+            <div class="tail-wrapper flex-center-start">
+                <div class="tail"></div>
+            </div>
+            <div class="platypus-body-marker">
+                <div class="head-marker">
+                    <div class="beak-marker"></div>
+                </div>
+            </div>
+            <div class="platypus-body">
+                <div class="head">
+                    <div class="ears-wrapper">
+                        <div class="ear ear-left"></div>
+                        <div class="ear ear-right"></div>
+                    </div>
+                    <div class="eyes-wrapper">
+                        <div class="eyes"></div>
+                    </div>
+                    <div class="beak"></div>
+                    <div class="legs">
+                        <div class="leg"></div>
+                        <div class="leg"></div>
+                    </div>
+                </div>
+                <div class="legs">
+                    <div class="leg"></div>
+                    <div class="leg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
