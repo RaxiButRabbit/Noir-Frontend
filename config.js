@@ -14,6 +14,6 @@
 
     window.NOIR_CONFIG = {
         // PRODUCTION: kendi Render URL'inizi buraya yazin
-        API_BASE: isLocal ? '' : 'https://noir-backend-pes8.onrender.com'
+        API_BASE: isLocal ? '' : 'https://noir-backend.onrender.com'
     };
 })();
